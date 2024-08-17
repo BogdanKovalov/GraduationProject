@@ -1,2 +1,3 @@
-data/
+data/*
+!data/611913.csv
 Mini J-PAS.xlsx
