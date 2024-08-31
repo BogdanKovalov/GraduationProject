@@ -1,4 +1,5 @@
 data/*
 test/
 !data/611913.csv
+!data/minijpas.xmatch_sdss_dr12.csv
 Mini J-PAS.xlsx
