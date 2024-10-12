@@ -124,18 +124,22 @@ if __name__ == '__main__':
     
     # JPAS filters
     jpas_slice = np.s_[0:-4]
-    df_jpas_filters = load_jpas_filters(slice=jpas_slice, isshow=False)
+    df_jpas_filters = load_jpas_filters(slice=jpas_slice, 
+                                        isshow=True)
     
     
-    for i, (idx, row) in enumerate(df_jpas_spec[0:].iterrows()):
+    for i, (idx, row) in enumerate(df_jpas_spec[10:10].iterrows()):
         print(i,idx)
         # if i < 10:
         #     continue
         # JPAS fluxes
         # sdss_data = load_sdss_spectum(row['jpas_idx'], row['specObjID'])
         plot_jpas_spec(row, df_jpas_filters, 
-                       slice=jpas_slice, issave=True)
+                       slice=jpas_slice, issave=False)
         
     
     
 # %%
+df_resampled = pd.DataFrame(
+    columns=['wavelenght', 'jpas_flux', 'jpas_flux_err', 
+             'sdss_flux', 'sdss_flux_err', 'sdss_model'])
