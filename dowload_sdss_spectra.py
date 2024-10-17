@@ -21,6 +21,8 @@ for i, row in df_spectra.iterrows():
     if os.path.exists(file_name):
         print(f"File already exists: {file_name}")
         continue
+    else:
+        os.makedirs(os.path.dirname(file_name), exist_ok=True)
     
     coords_sp = SkyCoord(ra=df_spectra.loc[i, 'ra'], 
                          dec=df_spectra.loc[i, 'dec'], 

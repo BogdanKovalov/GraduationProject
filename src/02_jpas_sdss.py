@@ -2,8 +2,10 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
+import scipy.interpolate as interpolate
+import scipy.signal as signal
 from astropy.io import fits
+import os
 
 # %%
 def load_jpas():
@@ -52,6 +54,7 @@ def plot_jpas_spec(row, jpas_filters, slice=np.s_[0:-4], issave=False):
     # JPAS fluxes
     # print(f"RA, DEC: {row['ra']:.6f} {row['dec']:.6f}")
     # fluxes = val2array(row['FLUX_AUTO'])
+    print("JPAS fluxes")
     fluxes = val2array(row['FLUX_APER_4_0'])
     fluxes_err = val2array(row['FLUX_RELERR_APER_4_0'])[slice]
     fluxes_err = np.where(fluxes_err < 0, 1e-5, fluxes_err)
@@ -103,14 +106,59 @@ def plot_jpas_spec(row, jpas_filters, slice=np.s_[0:-4], issave=False):
     plt.tight_layout()
     
     if issave:
-        plt.savefig(f"../figs/jpas_sdss_{row['jpas_idx']}.png",
+        if (os.path.exists('../images/spectra/jpas_sdss_{idx}.png') == False):
+            os.makedirs('../images/spectra/jpas_sdss_{idx}', exist_ok=True)
+
+        plt.savefig(f"../images/spectra/jpas_sdss_{idx}.png",
                     edgecolor='white')
         plt.close()
     else:
         plt.show()
     
-def resample_spectrum(sdss_data, wavelenght_sdss, wavelenght_jpas):
-    pass
+def resample_spectrum(sdss_data, jpas_data, wavelenght_sdss, wavelenght_jpas):
+    
+    min_spectrum = min(wavelenght_sdss.min(), wavelenght_jpas.min())
+    max_spectrum = max(wavelenght_sdss.max(), wavelenght_jpas.max())
+    num_points = (max_spectrum - min_spectrum) / 50
+
+    x = 10**sdss_data['loglam'].astype(float)
+    y_sdss = sdss_data['flux'].astype(float)
+
+    interp_function = interpolate.interp1d(x, y_sdss)
+    x = np.arange(x.min(), x.max(), 1)
+    y_sdss = interp_function(x)
+
+    x = np.insert(x, 0, min_spectrum)
+    y_sdss = np.insert(y_sdss, 0, y_sdss[:5].mean())
+
+    cond = x < max_spectrum
+    x = x[cond]
+    y_sdss = y_sdss[cond]
+    
+    x = np.append(x, max_spectrum)
+    y_sdss = np.append(y_sdss, y_sdss[-5:].mean())
+
+    y_resampled_sdss = signal.resample(y_sdss, int(num_points) + 1)
+    x_resampled = np.linspace(min_spectrum, max_spectrum, int(num_points) + 1)
+
+    x = np.array(wavelenght_jpas)
+    y_jpas = np.array(jpas_data)
+
+    cond = x > min_spectrum
+    x = x[cond]
+    np.insert(x, 0, min_spectrum)
+    
+    x = np.append(x, max_spectrum)
+    y_jpas = y_jpas[cond]
+    y_jpas = np.append(y_jpas, y_jpas[-1])
+
+    y_resampled_jpas = signal.resample(y_jpas, int(num_points) + 1)
+
+    plt.plot(x_resampled, y_resampled_sdss, marker='o', label='Resampled SDSS')
+    plt.plot(x_resampled, y_resampled_jpas / 100 - 1, marker='o', label='Resampled JPAS')
+    plt.show()
+
+
 
 # %%
 if __name__ == '__main__':
@@ -127,19 +175,27 @@ if __name__ == '__main__':
     df_jpas_filters = load_jpas_filters(slice=jpas_slice, 
                                         isshow=True)
     
-    
-    for i, (idx, row) in enumerate(df_jpas_spec[10:10].iterrows()):
+    sdss_data = load_sdss_spectum(df_jpas_spec['jpas_idx'].iloc[0], df_jpas_spec['specObjID'].iloc[0])
+    print(sdss_data, sdss_data)
+    for i, (idx, row) in enumerate(df_jpas_spec[1:100].iterrows()):
         print(i,idx)
         # if i < 10:
         #     continue
         # JPAS fluxes
         # sdss_data = load_sdss_spectum(row['jpas_idx'], row['specObjID'])
-        plot_jpas_spec(row, df_jpas_filters, 
+        plot_jpas_spec(row, df_jpas_filters,
                        slice=jpas_slice, issave=False)
         
     
     
 # %%
-df_resampled = pd.DataFrame(
-    columns=['wavelenght', 'jpas_flux', 'jpas_flux_err', 
-             'sdss_flux', 'sdss_flux_err', 'sdss_model'])
+df_jpas = load_jpas()
+print(df_jpas['FLUX_APER_4_0'].iloc[0])
+sdss_data = load_sdss_spectum(df_jpas['jpas_idx'].iloc[0], df_jpas['specObjID'].iloc[0])
+wavelenght_sdss = 10**sdss_data['loglam']
+wavelenght_jpas = df_jpas_filters['wavelength'][:-4].astype(float)
+resample_spectrum(sdss_data, val2array(df_jpas['FLUX_APER_4_0'].iloc[0])[:-8], wavelenght_sdss, wavelenght_jpas)
+#df_resampled = pd.DataFrame(
+#    columns=['wavelenght', 'jpas_flux', 'jpas_flux_err', 
+#             'sdss_flux', 'sdss_flux_err', 'sdss_model'])
+# %%

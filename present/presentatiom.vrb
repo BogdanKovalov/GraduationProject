@@ -1,0 +1,11 @@
+\frametitle{Matching with SDSS Objects}
+    To match JPAS objects with SDSS objects, first extracted SDSS objects from the SDSS database, using SQL query:
+    \begin{lstlisting}
+    SELECT
+    p.objid, p.ra, p.dec, p.u, p.g, p.r, p.i, p.z, p.run, p.camcol, p.field, p.specObjID
+    FROM PhotoPrimary AS p
+    WHERE p.ra BETWEEN {df_dual['ALPHA_J2000'].min()} AND {df_dual['ALPHA_J2000'].max()}
+    AND p.dec BETWEEN {df_dual['DELTA_J2000'].min()} AND {df_dual['DELTA_J2000'].max()}
+    AND p.r BETWEEN 14 AND 22.0
+    \end{lstlisting}
+    We got 35030 objects from the SDSS database.
